@@ -1,0 +1,7 @@
+.venv
+.ropeproject
+*.pyc
+__pycache__/
+.python-version
+uv.lock
+pyproject.toml
