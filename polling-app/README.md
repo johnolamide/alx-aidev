@@ -3,13 +3,15 @@
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
   <img src="https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white" alt="pnpm" />
 </div>
 
 <div align="center">
   <h3>Create, share, and analyze polls with real-time results and beautiful analytics</h3>
-  <p>A modern, full-stack polling application built with Next.js 15, TypeScript, and Shadcn/ui components.</p>
+  <p>A modern, full-stack polling application built with Next.js 15, TypeScript, Supabase, and Shadcn/ui components.</p>
+  <p>🚀 <strong>Authentication system fully implemented</strong> | 🎨 <strong>Modern UI ready</strong> | 📊 <strong>Backend integration in progress</strong></p>
 </div>
 
 ---
@@ -38,16 +40,17 @@
 - **Forms**: [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)
 - **Date Handling**: [date-fns](https://date-fns.org/)
 
-### Backend (To be implemented)
-- **Database**: Prisma + PostgreSQL / MongoDB / Supabase
-- **Authentication**: NextAuth.js / Clerk / Supabase Auth
-- **Real-time**: Socket.io / Server-Sent Events
-- **Deployment**: Vercel / Netlify
+### Backend & Database
+- **Database**: [Supabase](https://supabase.com/) (PostgreSQL with real-time capabilities)
+- **Authentication**: [Supabase Auth](https://supabase.com/docs/guides/auth) with JWT tokens
+- **Real-time**: Supabase real-time subscriptions
+- **API**: Next.js API routes with server-side Supabase client
 
 ### Development Tools
 - **Package Manager**: [pnpm](https://pnpm.io/)
 - **Code Quality**: ESLint + Prettier
 - **Type Checking**: TypeScript strict mode
+- **Deployment**: [Vercel](https://vercel.com/)
 
 ## 📁 Project Structure
 
@@ -55,36 +58,52 @@
 polling-app/
 ├── 📁 app/                          # Next.js App Router
 │   ├── 📁 (auth)/                   # Authentication routes group
-│   │   ├── 📁 login/                # Login page
-│   │   └── 📁 register/             # Registration page
-│   ├── 📁 (dashboard)/              # Dashboard routes group
+│   │   ├── 📁 login/                # Login page with Supabase auth
+│   │   └── 📁 register/             # Registration page with Supabase auth
+│   ├── 📁 (dashboard)/              # Protected dashboard routes group
 │   │   ├── 📁 dashboard/            # Dashboard overview
 │   │   ├── 📁 polls/                # Polls management
 │   │   │   ├── 📁 create/           # Create new poll
 │   │   │   ├── 📁 [id]/             # Individual poll view
 │   │   │   └── 📄 page.tsx          # Polls listing
-│   │   └── 📄 layout.tsx            # Dashboard layout
+│   │   └── 📄 layout.tsx            # Protected dashboard layout
 │   ├── 📁 api/                      # API routes
 │   │   ├── 📁 auth/                 # Authentication endpoints
 │   │   └── 📁 polls/                # Poll management endpoints
 │   ├── 📄 globals.css               # Global styles
-│   ├── 📄 layout.tsx                # Root layout
-│   └── 📄 page.tsx                  # Homepage
+│   ├── 📄 layout.tsx                # Root layout with AuthProvider
+│   ├── 📄 page.tsx                  # Homepage
+│   └── 📄 middleware.ts             # Route protection middleware
 ├── 📁 components/                   # React components
 │   ├── 📁 auth/                     # Authentication components
-│   ├── 📁 dashboard/                # Dashboard components
+│   │   ├── � login-form.tsx        # Login form with Supabase
+│   │   └── 📄 register-form.tsx     # Registration form with Supabase
+│   ├── �📁 dashboard/                # Dashboard components
 │   ├── 📁 layout/                   # Layout components
+│   │   ├── 📄 navbar.tsx            # Navigation with logout
+│   │   ├── 📄 sidebar.tsx           # Dashboard sidebar
+│   │   └── 📄 dashboard-layout.tsx  # Dashboard layout wrapper
 │   ├── 📁 polls/                    # Poll-related components
-│   └── 📁 ui/                       # Shadcn/ui components
+│   │   ├── 📄 poll-card.tsx         # Poll display component
+│   │   ├── 📄 poll-filters.tsx      # Poll filtering interface
+│   │   └── � create-poll-form.tsx  # Poll creation form
+│   └── �📁 ui/                       # Shadcn/ui components
 ├── 📁 lib/                          # Utility libraries
 │   ├── 📁 auth/                     # Authentication utilities
-│   ├── 📁 db/                       # Database operations
+│   │   ├── 📄 auth-context.tsx      # React auth context provider
+│   │   └── 📄 middleware.ts         # Route protection utilities
+│   ├── 📁 supabase/                 # Supabase configuration
+│   │   ├── 📄 client.ts             # Browser Supabase client
+│   │   └── 📄 server.ts             # Server Supabase client
+│   ├── 📁 db/                       # Database operations (placeholder)
 │   ├── 📁 types/                    # TypeScript type definitions
 │   └── 📄 utils.ts                  # General utilities
 ├── 📁 public/                       # Static assets
 ├── 📄 package.json                  # Dependencies and scripts
 ├── 📄 tailwind.config.js            # Tailwind configuration
 ├── 📄 components.json               # Shadcn/ui configuration
+├── 📄 .env.example                  # Environment variables template
+├── 📄 middleware.ts                 # Next.js middleware
 └── 📄 README.md                     # This file
 ```
 
@@ -95,6 +114,7 @@ polling-app/
 Before you begin, ensure you have the following installed:
 - **Node.js** 18.17+ or 20.3+ ([Download](https://nodejs.org/))
 - **pnpm** ([Install pnpm](https://pnpm.io/installation))
+- **Supabase Account** ([Create account](https://supabase.com/))
 
 ### Installation
 
@@ -109,18 +129,24 @@ Before you begin, ensure you have the following installed:
    pnpm install
    ```
 
-3. **Set up environment variables**
+3. **Set up Supabase project**
+   - Visit [supabase.com](https://supabase.com) and create a new project
+   - Go to Settings → API to get your project URL and anon key
+
+4. **Configure environment variables**
    ```bash
    cp .env.example .env.local
-   # Edit .env.local with your configuration
+   # Edit .env.local and add your Supabase credentials:
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. **Run the development server**
+5. **Run the development server**
    ```bash
    pnpm dev
    ```
 
-5. **Open your browser**
+6. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
 ### Available Scripts
@@ -196,10 +222,14 @@ Complete TypeScript coverage with defined interfaces for:
 
 ### 🔐 Authentication System
 - [x] User registration with password strength validation
-- [x] Secure login with email/password
-- [ ] Social authentication (Google, GitHub)
+- [x] Secure login with email/password via Supabase
+- [x] JWT token-based session management
+- [x] Protected routes with middleware
+- [x] Automatic redirects for authenticated/unauthenticated users
 - [x] Password visibility toggle
 - [x] Form validation and error handling
+- [x] Logout functionality with session cleanup
+- [ ] Social authentication (Google, GitHub)
 - [ ] Password reset functionality
 - [ ] Email verification
 
@@ -239,28 +269,39 @@ Complete TypeScript coverage with defined interfaces for:
 Create a `.env.local` file in the root directory:
 
 ```env
-# Database
-DATABASE_URL="your_database_connection_string"
+# Supabase Configuration (Required)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
-# Authentication
-NEXTAUTH_SECRET="your_nextauth_secret"
-NEXTAUTH_URL="http://localhost:3000"
+# Optional: Supabase Service Role Key (for server-side operations)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# OAuth Providers (optional)
-GOOGLE_CLIENT_ID="your_google_client_id"
-GOOGLE_CLIENT_SECRET="your_google_client_secret"
-
-# Email (optional)
-EMAIL_SERVER_HOST="smtp.gmail.com"
-EMAIL_SERVER_PORT=587
-EMAIL_SERVER_USER="your_email@gmail.com"
-EMAIL_SERVER_PASSWORD="your_app_password"
-EMAIL_FROM="noreply@yourapp.com"
+# Application Configuration
+NEXTAUTH_URL=http://localhost:3000
+APP_URL=http://localhost:3000
 ```
 
-### Database Setup (Choose one)
+### Supabase Setup
 
-#### Option 1: PostgreSQL with Prisma
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Get your project credentials** from Settings → API
+3. **Configure authentication** in Authentication → Settings
+4. **Set up database tables** (when implementing polls functionality)
+
+### Database Setup
+
+The application uses **Supabase** (PostgreSQL with real-time capabilities) as the database and authentication provider.
+
+#### Setting up Supabase
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+2. **Configure environment variables** with your project credentials
+3. **Set up authentication** in the Supabase dashboard
+4. **Create database tables** when implementing polls functionality
+
+#### Alternative Database Options (Future)
+
+##### Option 1: PostgreSQL with Prisma
 ```bash
 pnpm add prisma @prisma/client
 pnpm add -D @types/bcryptjs
@@ -268,33 +309,39 @@ npx prisma init
 # Configure your schema and run migrations
 ```
 
-#### Option 2: MongoDB with Mongoose
+##### Option 2: MongoDB with Mongoose
 ```bash
 pnpm add mongoose
 pnpm add -D @types/mongoose
 ```
 
-#### Option 3: Supabase (Recommended for quick setup)
-```bash
-pnpm add @supabase/supabase-js
-# Set up your Supabase project and tables
-```
+### Authentication Setup
 
-### Authentication Setup (Choose one)
+The application uses **Supabase Auth** for user authentication, which provides:
 
-#### Option 1: NextAuth.js
+- Email/password authentication
+- JWT token management
+- Session handling
+- User profile management
+- Row Level Security (RLS) policies
+
+#### Authentication Features Implemented ✅
+- User registration and login
+- Protected routes with middleware
+- Session management
+- Automatic redirects
+- Logout functionality
+
+#### Future Authentication Options
+
+##### Option 1: NextAuth.js
 ```bash
 pnpm add next-auth
 ```
 
-#### Option 2: Clerk
+##### Option 2: Clerk
 ```bash
 pnpm add @clerk/nextjs
-```
-
-#### Option 3: Supabase Auth
-```bash
-# Already included if using Supabase
 ```
 
 ## 🚀 Deployment
@@ -326,31 +373,38 @@ pnpm add @clerk/nextjs
 ### Phase 1: Core Functionality ✅
 - [x] Project setup and UI components
 - [x] Basic routing and navigation
-- [x] Authentication forms
-- [x] Poll creation interface
-- [x] Dashboard layout
+- [x] **Complete authentication system with Supabase**
+- [x] Protected routes and middleware
+- [x] User registration and login forms
+- [x] Dashboard layout with authentication
+- [x] Session management and logout
+- [x] Poll creation interface (UI ready)
+- [x] Responsive design implementation
 
 ### Phase 2: Backend Integration 🚧
-- [ ] Database schema and models
-- [ ] Authentication system
-- [ ] API endpoints for polls
-- [ ] Vote submission and counting
+- [ ] Database schema and models for polls
+- [ ] API endpoints for poll CRUD operations
+- [ ] Vote submission and counting system
+- [ ] Real-time vote updates with Supabase
 - [ ] User profile management
+- [ ] Poll analytics and statistics
 
 ### Phase 3: Advanced Features 📋
-- [ ] Real-time updates
-- [ ] Advanced analytics
-- [ ] Email notifications
-- [ ] Poll templates
-- [ ] Social sharing
-- [ ] Comments system
+- [ ] Real-time poll results with live updates
+- [ ] Advanced analytics dashboard
+- [ ] Email notifications for poll updates
+- [ ] Poll templates and categories
+- [ ] Social sharing functionality
+- [ ] Comments and discussion system
+- [ ] Poll expiration and archiving
 
 ### Phase 4: Enhancements 🔮
 - [ ] Mobile app (React Native)
 - [ ] AI-powered poll suggestions
 - [ ] Integration with third-party tools
-- [ ] Advanced permissions
+- [ ] Advanced permissions and roles
 - [ ] White-label solutions
+- [ ] API for third-party integrations
 
 ## 🤝 Contributing
 
@@ -386,12 +440,29 @@ We welcome contributions! Please follow these steps:
 - Write descriptive commit messages
 - Update tests and documentation
 
-## 🐛 Known Issues
+## 🐛 Known Issues & Limitations
 
-- [ ] Real-time updates not implemented yet
-- [ ] Database integration is placeholder
-- [ ] Authentication is not fully functional
-- [ ] Some responsive design improvements needed
+### ✅ Resolved Issues
+- [x] Authentication system fully implemented with Supabase
+- [x] Protected routes working with middleware
+- [x] User registration and login functional
+- [x] Session management implemented
+- [x] Build compilation errors resolved
+
+### 🚧 Current Limitations
+- [ ] Poll creation and voting functionality (UI ready, backend pending)
+- [ ] Database tables for polls not yet created in Supabase
+- [ ] Real-time vote counting not implemented
+- [ ] Poll analytics and statistics not available
+- [ ] Calendar component temporarily disabled (react-day-picker compatibility)
+- [ ] Social authentication (Google, GitHub) not implemented
+- [ ] Password reset functionality not implemented
+- [ ] Email verification not configured
+
+### 🔄 In Progress
+- [ ] Database schema design for polls and votes
+- [ ] API endpoints for poll management
+- [ ] Real-time subscriptions setup
 
 ## 📝 License
 
@@ -400,10 +471,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [Next.js](https://nextjs.org/) - The React framework for production
+- [Supabase](https://supabase.com/) - Open source Firebase alternative with PostgreSQL
 - [Shadcn/ui](https://ui.shadcn.com/) - Beautiful and accessible UI components
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [Lucide](https://lucide.dev/) - Beautiful & consistent icon toolkit
 - [Vercel](https://vercel.com/) - Platform for frontend developers
+- [TypeScript](https://www.typescriptlang.org/) - JavaScript with syntax for types
 
 ## 📞 Support
 
