@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Vote, Loader2 } from "lucide-react";
 import { LoginData } from "@/lib/types";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface LoginFormProps {
   onSubmit?: (data: LoginData) => Promise<void>;
@@ -31,6 +33,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,18 +44,9 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Default login logic - replace with actual authentication
-        console.log("Login attempt:", formData);
-
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // TODO: Replace with actual authentication logic
-        if (formData.email && formData.password) {
-          router.push("/dashboard");
-        } else {
-          throw new Error("Please fill in all fields");
-        }
+        // Use Supabase authentication
+        await signIn(formData.email, formData.password);
+        router.push("/dashboard");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

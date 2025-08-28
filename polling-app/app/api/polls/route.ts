@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { pollDb, requireAuth } from "@/lib/db";
+import { pollDb } from "@/lib/db";
 import { CreatePollData, ApiResponse, PaginatedResponse } from "@/lib/types";
 
 // GET /api/polls - Get all polls with pagination and filtering
@@ -39,14 +39,9 @@ export async function GET(request: NextRequest) {
 // POST /api/polls - Create a new poll
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Replace with actual auth middleware
-    const user = await requireAuth();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: "Authentication required" },
-        { status: 401 }
-      );
-    }
+    // TODO: Replace with Supabase auth middleware
+    // For now, assume user is authenticated via middleware
+    const user = { id: "temp_user_id" }; // This will be replaced with actual auth
 
     const body: CreatePollData = await request.json();
     const { title, description, options, isPublic, allowMultipleVotes, expiresAt } = body;

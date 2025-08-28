@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/popover";
 import {
   Calendar,
-  CalendarIcon,
 } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -27,6 +26,7 @@ import {
   Filter,
   X,
   Calendar as CalendarLucide,
+  CalendarIcon,
   User,
   Vote,
   Clock,
@@ -34,14 +34,11 @@ import {
   SortAsc,
   SortDesc,
 } from "lucide-react";
+import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 
 export type FilterType = "all" | "active" | "expired" | "my-polls" | "participated";
 export type SortType = "newest" | "oldest" | "most-votes" | "least-votes" | "most-popular" | "alphabetical";
-export type DateRange = {
-  from?: Date;
-  to?: Date;
-};
 
 export interface PollFilters {
   search: string;
@@ -159,7 +156,7 @@ export function PollFilters({
   className,
 }: PollFiltersProps) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(showAdvanced);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(filters.dateRange);
+  // const [dateRange, setDateRange] = useState<DateRange | undefined>(filters.dateRange);
 
   const updateFilter = (key: keyof PollFilters, value: any) => {
     onFiltersChange({
@@ -174,7 +171,7 @@ export function PollFilters({
       filter: "all",
       sortBy: "newest",
     });
-    setDateRange(undefined);
+    // setDateRange(undefined);
   };
 
   const hasActiveFilters = () => {
@@ -338,8 +335,8 @@ export function PollFilters({
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Date Range Filter */}
-            <div className="space-y-2">
+            {/* Date Range Filter - Temporarily disabled due to calendar component issues */}
+            {/* <div className="space-y-2">
               <Label>Date Range</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -376,7 +373,7 @@ export function PollFilters({
                   />
                 </PopoverContent>
               </Popover>
-            </div>
+            </div> */}
 
             {/* Creator Filter */}
             <div className="space-y-2">
@@ -493,7 +490,7 @@ export function PollFilters({
                     dateRange: { from: lastWeek, to: new Date() },
                     sortBy: "newest",
                   });
-                  setDateRange({ from: lastWeek, to: new Date() });
+                  // setDateRange({ from: lastWeek, to: new Date() });
                 }}
               >
                 This Week
@@ -549,7 +546,8 @@ export function PollFilters({
             </Badge>
           )}
 
-          {filters.dateRange && (
+          {/* Date range filter badge - Temporarily disabled */}
+          {/* {filters.dateRange && (
             <Badge variant="secondary" className="flex items-center space-x-1">
               <span>
                 {filters.dateRange.from && filters.dateRange.to
@@ -571,7 +569,7 @@ export function PollFilters({
                 <X className="h-3 w-3" />
               </Button>
             </Badge>
-          )}
+          )} */}
 
           {filters.creatorFilter && (
             <Badge variant="secondary" className="flex items-center space-x-1">

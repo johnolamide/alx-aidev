@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Vote, Loader2, Check, X } from "lucide-react";
 import { RegisterData } from "@/lib/types";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface RegisterFormProps {
   onSubmit?: (data: RegisterData) => Promise<void>;
@@ -53,6 +54,7 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
     }
   });
   const router = useRouter();
+  const { signUp } = useAuth();
 
   const calculatePasswordStrength = (password: string): PasswordStrength => {
     const requirements = {
@@ -101,13 +103,8 @@ export function RegisterForm({ onSubmit }: RegisterFormProps) {
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Default registration logic - replace with actual authentication
-        console.log("Registration attempt:", formData);
-
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // TODO: Replace with actual registration logic
+        // Use Supabase authentication
+        await signUp(formData.email, formData.password, formData.name);
         router.push("/login?registered=true");
       }
     } catch (err) {

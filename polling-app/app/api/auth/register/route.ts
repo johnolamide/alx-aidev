@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { userDb, hashPassword } from "@/lib/db";
+import { userDb } from "@/lib/db";
 import { RegisterData, ApiResponse } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
@@ -31,16 +31,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password and create user
-    const hashedPassword = await hashPassword(password);
+    // Create user (password handled by Supabase auth)
     const user = await userDb.create({
       name,
       email,
-      password: hashedPassword,
+      avatar: undefined,
     });
 
-    // Remove password from response
-    const { password: _, ...userResponse } = user;
+    // Remove password from response (not needed since Supabase handles auth)
+    const userResponse = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
 
     const response: ApiResponse = {
       success: true,
