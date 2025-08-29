@@ -490,6 +490,6 @@ If you have any questions or need help, please:
 ---
 
 <div align="center">
-  <p>Made with ❤️ by <a href="https://github.com/yourusername">Your Name</a></p>
+  <p>Made with ❤️ by <a href="https://github.com/johnolamide">John Olamide</a></p>
   <p>⭐ Star this repo if you find it helpful!</p>
 </div>
