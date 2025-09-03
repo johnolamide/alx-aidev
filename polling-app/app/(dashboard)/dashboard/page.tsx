@@ -24,10 +24,11 @@ import { createClient } from "@/lib/supabase/server";
 import { deletePoll } from "@/lib/actions/create-poll";
 
 interface DashboardPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -200,7 +201,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                               <Edit className="h-4 w-4" />
                             </Button>
                           </Link>
-                          <form action={deletePoll.bind(null, poll.id)} method="post" className="inline">
+                          <form action={deletePoll.bind(null, poll.id)} className="inline">
                             <Button
                               variant="ghost"
                               size="sm"

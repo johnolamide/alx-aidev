@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPollById } from "@/lib/actions/get-polls";
-import { voteOnPoll } from "@/lib/actions/vote";
+import { submitVote } from "@/lib/actions/vote";
 import { Vote } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -244,7 +244,7 @@ export default async function PublicPollDetailPage({ params }: PublicPollDetailP
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <form action={voteOnPoll} className="space-y-3">
+                      <form action={submitVote} className="space-y-3">
                         <input type="hidden" name="pollId" value={poll.id} />
                         {poll.poll_options?.map((option) => (
                           <Button

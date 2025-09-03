@@ -26,15 +26,15 @@ import { getPublicPolls } from "@/lib/actions/get-polls";
 import { createClient } from "@/lib/supabase/server";
 
 interface PublicPollsPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function PublicPollsPage({ searchParams }: PublicPollsPageProps) {
+  const params = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   const polls = await getPublicPolls();
-  const params = await searchParams;
   const showSuccess = params?.success === 'true';
 
   return (
