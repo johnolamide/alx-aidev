@@ -13,32 +13,42 @@ export interface Poll {
   id: string;
   title: string;
   description?: string;
-  creatorId: string;
-  creator: User;
-  options: PollOption[];
-  votes: Vote[];
-  isPublic: boolean;
-  allowMultipleVotes: boolean;
-  expiresAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  created_by: string;
+  created_at: Date;
+  expires_at?: Date;
+  is_public: boolean;
+  allow_multiple_votes: boolean;
+  total_votes: number;
+  updated_at: Date;
+  poll_options?: PollOption[];
+  votes?: Vote[];
+  creator?: {
+    id: string;
+    email?: string;
+  } | undefined;
+  userVote?: {
+    id: string;
+    option_id: string;
+  } | null;
 }
 
 export interface PollOption {
   id: string;
-  pollId: string;
-  text: string;
-  votes: Vote[];
-  createdAt: Date;
+  poll_id: string;
+  option_text: string;
+  vote_count: number;
+  created_at: Date;
 }
 
 export interface Vote {
   id: string;
-  pollId: string;
-  optionId: string;
-  userId: string;
-  user: User;
-  createdAt: Date;
+  poll_id: string;
+  option_id: string;
+  user_id?: string;
+  anonymous_id?: string;
+  created_at: Date;
+  ip_address?: string;
+  user_agent?: string;
 }
 
 // Form types
@@ -49,6 +59,7 @@ export interface CreatePollData {
   isPublic: boolean;
   allowMultipleVotes: boolean;
   expiresAt?: Date;
+  expirationDays?: string;
 }
 
 export interface LoginData {

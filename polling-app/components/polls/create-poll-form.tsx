@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,8 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus,
-  X,
   Calendar,
   Users,
   Lock,
@@ -32,120 +29,64 @@ import {
   Loader2,
   AlertCircle
 } from "lucide-react";
-import { CreatePollData } from "@/lib/types";
+import { createPoll, updatePoll } from "@/lib/actions/create-poll";
 
 interface CreatePollFormProps {
-  onSubmit?: (data: CreatePollData) => Promise<void>;
+  initialData?: {
+    title: string;
+    description: string;
+    options: string[];
+    isPublic: boolean;
+    allowMultipleVotes: boolean;
+    expirationDays: string | number;
+  };
+  pollId?: string;
+  onSubmit?: (formData: FormData) => Promise<void>;
+  submitButtonText?: string;
 }
 
-export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
-  const [formData, setFormData] = useState<CreatePollData>({
-    title: "",
-    description: "",
-    options: ["", ""],
-    isPublic: true,
-    allowMultipleVotes: false,
-  });
-  const [expirationOption, setExpirationOption] = useState<string>("never");
-  const [customExpirationDays, setCustomExpirationDays] = useState<string>("7");
+export function CreatePollForm({
+  initialData,
+  pollId,
+  onSubmit,
+  submitButtonText = "Create Poll"
+}: CreatePollFormProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+  // Form state
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(initialData?.description || "");
+  const [options, setOptions] = useState<string[]>(initialData?.options || ["", ""]);
+  const [isPublic, setIsPublic] = useState(initialData?.isPublic ?? true);
+  const [allowMultipleVotes, setAllowMultipleVotes] = useState(initialData?.allowMultipleVotes ?? false);
+  const [expirationDays, setExpirationDays] = useState<string>(
+    typeof initialData?.expirationDays === 'number'
+      ? initialData.expirationDays.toString()
+      : initialData?.expirationDays || "7"
+  );
+
+  const handleSubmit = async (formData: FormData) => {
     setIsLoading(true);
-
-    // Validation
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = "Poll title is required";
-    }
-
-    const validOptions = formData.options.filter(option => option.trim());
-    if (validOptions.length < 2) {
-      newErrors.options = "At least 2 options are required";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      setIsLoading(false);
-      return;
-    }
-
-    // Set expiration date
-    let expiresAt: Date | undefined;
-    if (expirationOption !== "never") {
-      const days = expirationOption === "custom"
-        ? parseInt(customExpirationDays)
-        : parseInt(expirationOption);
-      expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + days);
-    }
-
-    const pollData: CreatePollData = {
-      ...formData,
-      options: validOptions,
-      expiresAt,
-    };
+    setErrors({});
 
     try {
+      // Add pollId if editing
+      if (pollId) {
+        formData.append('pollId', pollId);
+      }
+
       if (onSubmit) {
-        await onSubmit(pollData);
+        await onSubmit(formData);
       } else {
-        // Default submit logic - replace with actual API call
-        console.log("Creating poll:", pollData);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        router.push("/polls");
+        await createPoll(formData);
       }
     } catch (error) {
-      setErrors({ submit: error instanceof Error ? error.message : "Failed to create poll" });
+      setErrors({ submit: error instanceof Error ? error.message : "Failed to save poll" });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const addOption = () => {
-    if (formData.options.length < 10) {
-      setFormData(prev => ({
-        ...prev,
-        options: [...prev.options, ""]
-      }));
-    }
-  };
-
-  const removeOption = (index: number) => {
-    if (formData.options.length > 2) {
-      setFormData(prev => ({
-        ...prev,
-        options: prev.options.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const updateOption = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      options: prev.options.map((option, i) => i === index ? value : option)
-    }));
-    // Clear option errors when user starts typing
-    if (errors.options) {
-      setErrors(prev => ({ ...prev, options: "" }));
-    }
-  };
-
-  const handleInputChange = (field: keyof CreatePollData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear field error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const validOptionsCount = formData.options.filter(option => option.trim()).length;
-  const isFormValid = formData.title.trim() && validOptionsCount >= 2;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -156,7 +97,7 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form action={handleSubmit}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -183,15 +124,13 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
               </Label>
               <Input
                 id="title"
+                name="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="What's your poll about?"
-                value={formData.title}
-                onChange={(e) => handleInputChange("title", e.target.value)}
                 disabled={isLoading}
-                className={errors.title ? "border-red-500" : ""}
+                required
               />
-              {errors.title && (
-                <p className="text-sm text-red-600">{errors.title}</p>
-              )}
             </div>
 
             {/* Poll Description */}
@@ -199,9 +138,10 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
               <Label htmlFor="description">Description (Optional)</Label>
               <Textarea
                 id="description"
+                name="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add more context to your poll..."
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
                 disabled={isLoading}
                 rows={3}
               />
@@ -216,57 +156,54 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
                   Poll Options <span className="text-red-500">*</span>
                 </Label>
                 <span className="text-sm text-muted-foreground">
-                  {validOptionsCount} of {formData.options.length} options
+                  4 options available
                 </span>
               </div>
 
-              {errors.options && (
-                <div className="p-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                  {errors.options}
-                </div>
-              )}
-
               <div className="space-y-3">
-                {formData.options.map((option, index) => (
+                {options.map((option, index) => (
                   <div key={index} className="flex items-center space-x-2">
                     <div className="flex-1">
                       <Input
-                        placeholder={`Option ${index + 1}`}
                         value={option}
-                        onChange={(e) => updateOption(index, e.target.value)}
+                        onChange={(e) => {
+                          const newOptions = [...options];
+                          newOptions[index] = e.target.value;
+                          setOptions(newOptions);
+                        }}
+                        placeholder={`Option ${index + 1}`}
                         disabled={isLoading}
-                        className={errors.options && !option.trim() ? "border-red-300" : ""}
+                        required={index < 2}
                       />
                     </div>
-                    {formData.options.length > 2 && (
+                    {options.length > 2 && (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => removeOption(index)}
+                        onClick={() => {
+                          const newOptions = options.filter((_, i) => i !== index);
+                          setOptions(newOptions);
+                        }}
                         disabled={isLoading}
-                        className="text-red-600 hover:text-red-700"
                       >
-                        <X className="h-4 w-4" />
+                        Remove
                       </Button>
                     )}
                   </div>
                 ))}
-              </div>
 
-              {formData.options.length < 10 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addOption}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Another Option
-                </Button>
-              )}
+                {options.length < 10 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOptions([...options, ""])}
+                    disabled={isLoading}
+                  >
+                    Add Option
+                  </Button>
+                )}
+              </div>
             </div>
 
             <Separator />
@@ -279,21 +216,21 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
               <div className="space-y-2">
                 <Label>Visibility</Label>
                 <Select
-                  value={formData.isPublic ? "public" : "private"}
-                  onValueChange={(value) => handleInputChange("isPublic", value === "public")}
+                  value={isPublic.toString()}
+                  onValueChange={(value) => setIsPublic(value === "true")}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="public">
+                    <SelectItem value="true">
                       <div className="flex items-center">
                         <Unlock className="mr-2 h-4 w-4" />
                         Public - Anyone can see and vote
                       </div>
                     </SelectItem>
-                    <SelectItem value="private">
+                    <SelectItem value="false">
                       <div className="flex items-center">
                         <Lock className="mr-2 h-4 w-4" />
                         Private - Only people with link can vote
@@ -307,21 +244,21 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
               <div className="space-y-2">
                 <Label>Voting Rules</Label>
                 <Select
-                  value={formData.allowMultipleVotes ? "multiple" : "single"}
-                  onValueChange={(value) => handleInputChange("allowMultipleVotes", value === "multiple")}
+                  value={allowMultipleVotes.toString()}
+                  onValueChange={(value) => setAllowMultipleVotes(value === "true")}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="single">
+                    <SelectItem value="false">
                       <div className="flex items-center">
                         <Vote className="mr-2 h-4 w-4" />
                         Single choice - One vote per person
                       </div>
                     </SelectItem>
-                    <SelectItem value="multiple">
+                    <SelectItem value="true">
                       <div className="flex items-center">
                         <Users className="mr-2 h-4 w-4" />
                         Multiple choice - Multiple votes allowed
@@ -336,8 +273,8 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
                 <Label>Poll Duration</Label>
                 <div className="space-y-2">
                   <Select
-                    value={expirationOption}
-                    onValueChange={setExpirationOption}
+                    value={expirationDays}
+                    onValueChange={setExpirationDays}
                     disabled={isLoading}
                   >
                     <SelectTrigger>
@@ -355,24 +292,8 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
                       <SelectItem value="7">1 week</SelectItem>
                       <SelectItem value="14">2 weeks</SelectItem>
                       <SelectItem value="30">1 month</SelectItem>
-                      <SelectItem value="custom">Custom duration</SelectItem>
                     </SelectContent>
                   </Select>
-
-                  {expirationOption === "custom" && (
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        type="number"
-                        min="1"
-                        max="365"
-                        value={customExpirationDays}
-                        onChange={(e) => setCustomExpirationDays(e.target.value)}
-                        disabled={isLoading}
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">days</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -384,29 +305,39 @@ export function CreatePollForm({ onSubmit }: CreatePollFormProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.back()}
+                onClick={() => window.history.back()}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={!isFormValid || isLoading}
+                disabled={isLoading}
                 className="min-w-[140px]"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    {submitButtonText === "Create Poll" ? "Creating..." : "Updating..."}
                   </>
                 ) : (
                   <>
                     <Vote className="mr-2 h-4 w-4" />
-                    Create Poll
+                    {submitButtonText}
                   </>
                 )}
               </Button>
             </div>
+
+            {/* Hidden inputs for form submission */}
+            <input type="hidden" name="title" value={title} />
+            <input type="hidden" name="description" value={description} />
+            <input type="hidden" name="isPublic" value={isPublic.toString()} />
+            <input type="hidden" name="allowMultipleVotes" value={allowMultipleVotes.toString()} />
+            <input type="hidden" name="expirationDays" value={expirationDays} />
+            {options.map((option, index) => (
+              <input key={index} type="hidden" name={`options[${index}]`} value={option} />
+            ))}
           </CardContent>
         </Card>
       </form>

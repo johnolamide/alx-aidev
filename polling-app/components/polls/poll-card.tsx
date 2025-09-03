@@ -62,13 +62,18 @@ export function PollCard({
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isVoting, setIsVoting] = useState(false);
 
-  const isCreator = currentUserId === poll.creatorId;
-  const hasVoted = poll.votes.some(vote => vote.userId === currentUserId);
-  const totalVotes = poll.votes.length;
-  const isExpired = poll.expiresAt && new Date(poll.expiresAt) < new Date();
+  const isCreator = currentUserId === poll.created_by;
+  const hasVoted = !!poll.userVote;
+  const totalVotes = poll.total_votes;
+  const isExpired = poll.expires_at && new Date(poll.expires_at) < new Date();
 
   const getVoteCount = (optionId: string) => {
-    return poll.votes.filter(vote => vote.optionId === optionId).length;
+    // Use vote_count from poll_options if available, otherwise fall back to votes array
+    const option = poll.poll_options?.find(opt => opt.id === optionId);
+    if (option) {
+      return option.vote_count;
+    }
+    return poll.votes ? poll.votes.filter(vote => vote.option_id === optionId).length : 0;
   };
 
   const getVotePercentage = (optionId: string) => {
@@ -77,7 +82,7 @@ export function PollCard({
   };
 
   const getUserVote = () => {
-    return poll.votes.find(vote => vote.userId === currentUserId);
+    return poll.userVote;
   };
 
   const handleVote = async (optionId: string) => {
@@ -100,10 +105,10 @@ export function PollCard({
   };
 
   const formatTimeLeft = () => {
-    if (!poll.expiresAt) return null;
+    if (!poll.expires_at) return null;
 
     const now = new Date();
-    const expires = new Date(poll.expiresAt);
+    const expires = new Date(poll.expires_at);
 
     if (expires < now) {
       return "Expired";
@@ -130,11 +135,11 @@ export function PollCard({
                 </span>
                 <span className="flex items-center gap-1">
                   <Users className="h-3 w-3" />
-                  {poll.options.length} options
+                  {poll.poll_options?.length || 0} options
                 </span>
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
                 </span>
               </div>
             </div>
@@ -151,7 +156,7 @@ export function PollCard({
                   Expired
                 </Badge>
               )}
-              {!poll.isPublic && (
+              {!poll.is_public && (
                 <Badge variant="secondary">Private</Badge>
               )}
             </div>
@@ -168,15 +173,16 @@ export function PollCard({
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={poll.creator.avatar} />
                 <AvatarFallback>
-                  {poll.creator.name.substring(0, 2).toUpperCase()}
+                  {poll.creator?.email ? poll.creator.email.charAt(0).toUpperCase() : 'U'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-medium">{poll.creator.name}</p>
+                <p className="text-sm font-medium">
+                  {poll.creator?.email || 'Anonymous User'}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
                 </p>
               </div>
             </div>
@@ -251,17 +257,17 @@ export function PollCard({
             </span>
             <span className="flex items-center">
               <Users className="h-4 w-4 mr-1" />
-              {poll.options.length} options
+              {poll.poll_options?.length || 0} options
             </span>
           </div>
 
           <div className="flex items-center space-x-1 ml-auto">
-            {!poll.isPublic && (
+            {!poll.is_public && (
               <Badge variant="secondary" className="text-xs">
                 Private
               </Badge>
             )}
-            {poll.allowMultipleVotes && (
+            {poll.allow_multiple_votes && (
               <Badge variant="outline" className="text-xs">
                 Multiple votes
               </Badge>
@@ -282,10 +288,10 @@ export function PollCard({
 
       <CardContent className="pt-0">
         <div className="space-y-3">
-          {poll.options.map((option) => {
+          {poll.poll_options?.map((option) => {
             const voteCount = getVoteCount(option.id);
             const percentage = getVotePercentage(option.id);
-            const userVoted = getUserVote()?.optionId === option.id;
+            const userVoted = getUserVote()?.option_id === option.id;
 
             return (
               <div
@@ -297,15 +303,27 @@ export function PollCard({
                     ? "border-muted bg-muted/30"
                     : "border-muted hover:border-primary/50 cursor-pointer"
                 }`}
-                onClick={() => !hasVoted && !isExpired && handleVote(option.id)}
+                onClick={() => {
+                  if (!hasVoted && !isExpired) {
+                    if (onVote) {
+                      handleVote(option.id);
+                    } else {
+                      // Redirect to poll detail page for voting
+                      window.location.href = `/polls/${poll.id}`;
+                    }
+                  }
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{option.text}</span>
+                  <span className="font-medium">{option.option_text}</span>
                   <div className="flex items-center space-x-2">
                     {(hasVoted || isExpired) && (
                       <span className="text-sm text-muted-foreground">
                         {percentage}%
                       </span>
+                    )}
+                    {!hasVoted && !isExpired && !onVote && (
+                      <span className="text-xs text-muted-foreground">Click to vote</span>
                     )}
                     <span className="text-sm font-medium">{voteCount}</span>
                     {userVoted && <CheckCircle2 className="h-4 w-4 text-primary" />}
@@ -333,7 +351,7 @@ export function PollCard({
       <CardFooter className="pt-3">
         <div className="flex items-center justify-between w-full">
           <div className="text-sm text-muted-foreground">
-            {poll.expiresAt && (
+            {poll.expires_at && (
               <span className="flex items-center">
                 <Clock className="h-3 w-3 mr-1" />
                 {formatTimeLeft()}

@@ -14,73 +14,50 @@ import {
   Activity,
   Clock,
   CheckCircle2,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { getUserPolls } from "@/lib/actions/get-polls";
+import { createClient } from "@/lib/supabase/server";
+import { deletePoll } from "@/lib/actions/create-poll";
 
-// Mock data - Replace with real data from API
-const mockStats = {
-  totalPolls: 12,
-  totalVotes: 89,
-  totalParticipants: 45,
-  activePolls: 8,
-};
+interface DashboardPageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
 
-const mockRecentPolls = [
-  {
-    id: "poll_1",
-    title: "What's your favorite programming language?",
-    votes: 23,
-    participants: 15,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    status: "active",
-    isPublic: true,
-  },
-  {
-    id: "poll_2",
-    title: "Best time for team meetings?",
-    votes: 18,
-    participants: 12,
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    status: "active",
-    isPublic: false,
-  },
-  {
-    id: "poll_3",
-    title: "Office lunch preferences",
-    votes: 31,
-    participants: 20,
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    status: "expired",
-    isPublic: true,
-  },
-];
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-const mockRecentActivity = [
-  {
-    id: "activity_1",
-    type: "vote",
-    user: { name: "Sarah Johnson", avatar: "" },
-    poll: { title: "What's your favorite programming language?" },
-    timestamp: new Date(Date.now() - 30 * 60 * 1000),
-  },
-  {
-    id: "activity_2",
-    type: "poll_created",
-    user: { name: "John Doe", avatar: "" },
-    poll: { title: "Best time for team meetings?" },
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-  },
-  {
-    id: "activity_3",
-    type: "vote",
-    user: { name: "Mike Chen", avatar: "" },
-    poll: { title: "Office lunch preferences" },
-    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-  },
-];
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+          <p className="text-muted-foreground mb-4">You must be logged in to view the dashboard.</p>
+          <Link href="/login">
+            <Button>Log in</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-export default function DashboardPage() {
+  const polls = await getUserPolls();
+
+  // Calculate statistics from real data
+  const totalPolls = polls.length;
+  const totalVotes = polls.reduce((sum, poll) => sum + poll.total_votes, 0);
+  const activePolls = polls.filter(poll =>
+    !poll.expires_at || new Date(poll.expires_at) > new Date()
+  ).length;
+  const totalParticipants = polls.reduce((sum, poll) => {
+    // Estimate participants (this is approximate since we don't track unique voters)
+    return sum + Math.min(poll.total_votes, poll.poll_options?.length || 0);
+  }, 0);
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -99,9 +76,9 @@ export default function DashboardPage() {
             <Vote className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalPolls}</div>
+            <div className="text-2xl font-bold">{totalPolls}</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last month
+              Polls you've created
             </p>
           </CardContent>
         </Card>
@@ -112,9 +89,9 @@ export default function DashboardPage() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalVotes}</div>
+            <div className="text-2xl font-bold">{totalVotes}</div>
             <p className="text-xs text-muted-foreground">
-              +12% from last week
+              Votes across all polls
             </p>
           </CardContent>
         </Card>
@@ -125,9 +102,9 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalParticipants}</div>
+            <div className="text-2xl font-bold">{totalParticipants}</div>
             <p className="text-xs text-muted-foreground">
-              +5 new this week
+              Estimated participants
             </p>
           </CardContent>
         </Card>
@@ -138,9 +115,9 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.activePolls}</div>
+            <div className="text-2xl font-bold">{activePolls}</div>
             <p className="text-xs text-muted-foreground">
-              {mockStats.totalPolls - mockStats.activePolls} completed
+              {totalPolls - activePolls} completed
             </p>
           </CardContent>
         </Card>
@@ -152,7 +129,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Recent Polls</CardTitle>
+                <CardTitle>Your Polls</CardTitle>
                 <CardDescription>Your latest poll activity</CardDescription>
               </div>
               <Link href="/polls/create">
@@ -164,103 +141,109 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mockRecentPolls.map((poll, index) => (
-              <div key={poll.id}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <Link
-                      href={`/polls/${poll.id}`}
-                      className="font-medium hover:text-primary cursor-pointer line-clamp-1"
-                    >
-                      {poll.title}
-                    </Link>
-                    <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center">
-                        <Vote className="h-3 w-3 mr-1" />
-                        {poll.votes} votes
-                      </span>
-                      <span className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {poll.participants} participants
-                      </span>
-                      <span className="flex items-center">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        {formatDistanceToNow(poll.createdAt, { addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      variant={poll.status === "active" ? "default" : "secondary"}
-                    >
-                      {poll.status === "active" ? "Active" : "Expired"}
-                    </Badge>
-                    {!poll.isPublic && (
-                      <Badge variant="outline">Private</Badge>
-                    )}
-                  </div>
-                </div>
-                {index < mockRecentPolls.length - 1 && <Separator className="mt-4" />}
+            {polls.length === 0 ? (
+              <div className="text-center py-8">
+                <Vote className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No polls yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first poll to get started!
+                </p>
+                <Link href="/polls/create">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Your First Poll
+                  </Button>
+                </Link>
               </div>
-            ))}
-            <div className="pt-2">
-              <Link href="/polls">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View All Polls
-                </Button>
-              </Link>
-            </div>
+            ) : (
+              polls.slice(0, 5).map((poll, index) => {
+                const isExpired = poll.expires_at && new Date(poll.expires_at) < new Date();
+                const status = isExpired ? "expired" : "active";
+
+                return (
+                  <div key={poll.id}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <Link
+                          href={`/polls/${poll.id}`}
+                          className="font-medium hover:text-primary cursor-pointer line-clamp-1"
+                        >
+                          {poll.title}
+                        </Link>
+                        <div className="flex items-center space-x-4 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center">
+                            <Vote className="h-3 w-3 mr-1" />
+                            {poll.total_votes} votes
+                          </span>
+                          <span className="flex items-center">
+                            <Users className="h-3 w-3 mr-1" />
+                            {poll.poll_options?.length || 0} options
+                          </span>
+                          <span className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge
+                          variant={status === "active" ? "default" : "secondary"}
+                        >
+                          {status === "active" ? "Active" : "Expired"}
+                        </Badge>
+                        {!poll.is_public && (
+                          <Badge variant="outline">Private</Badge>
+                        )}
+                        <div className="flex items-center space-x-1">
+                          <Link href={`/polls/${poll.id}/edit`}>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <form action={deletePoll.bind(null, poll.id)} method="post" className="inline">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              type="submit"
+                              title="Delete poll"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                    {index < polls.slice(0, 5).length - 1 && <Separator className="mt-4" />}
+                  </div>
+                );
+              })
+            )}
+            {polls.length > 5 && (
+              <div className="pt-2">
+                <Link href="/polls">
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Eye className="h-4 w-4 mr-2" />
+                    View All Polls
+                  </Button>
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Recent Activity - Placeholder for now */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Latest votes and poll updates</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mockRecentActivity.map((activity, index) => (
-              <div key={activity.id}>
-                <div className="flex items-start space-x-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={activity.user.avatar} />
-                    <AvatarFallback>
-                      {activity.user.name.substring(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2">
-                      {activity.type === "vote" ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <Plus className="h-3 w-3 text-blue-600" />
-                      )}
-                      <span className="text-sm font-medium">
-                        {activity.user.name}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {activity.type === "vote" ? "voted on" : "created"}{" "}
-                      <span className="font-medium">{activity.poll.title}</span>
-                    </p>
-                    <div className="flex items-center text-xs text-muted-foreground mt-1">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
-                    </div>
-                  </div>
-                </div>
-                {index < mockRecentActivity.length - 1 && <Separator className="mt-4" />}
-              </div>
-            ))}
-            <div className="pt-2">
-              <Link href="/dashboard/activity">
-                <Button variant="outline" size="sm" className="w-full">
-                  <Activity className="h-4 w-4 mr-2" />
-                  View All Activity
-                </Button>
-              </Link>
+            <div className="text-center py-8">
+              <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Activity Tracking</h3>
+              <p className="text-muted-foreground">
+                Activity tracking will be available soon.
+              </p>
             </div>
           </CardContent>
         </Card>

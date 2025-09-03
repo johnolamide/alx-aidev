@@ -72,21 +72,22 @@ export const pollDb = {
       id: pollId,
       title: pollData.title,
       description: pollData.description,
-      creatorId: pollData.creatorId,
+      created_by: pollData.creatorId,
       creator: {} as User, // Will be populated with actual user data
-      options: pollData.options.map((optionText, index) => ({
+      poll_options: pollData.options.map((optionText, index) => ({
         id: `option_${pollId}_${index}`,
-        pollId: pollId,
-        text: optionText,
-        votes: [],
-        createdAt: now,
+        poll_id: pollId,
+        option_text: optionText,
+        vote_count: 0,
+        created_at: now,
       })),
       votes: [],
-      isPublic: pollData.isPublic,
-      allowMultipleVotes: pollData.allowMultipleVotes,
-      expiresAt: pollData.expiresAt,
-      createdAt: now,
-      updatedAt: now,
+      is_public: pollData.isPublic,
+      allow_multiple_votes: pollData.allowMultipleVotes,
+      expires_at: pollData.expiresAt,
+      created_at: now,
+      updated_at: now,
+      total_votes: 0,
     };
   },
 
@@ -117,11 +118,10 @@ export const voteDb = {
     const now = new Date();
     return {
       id: `vote_${Date.now()}`,
-      pollId: voteData.pollId,
-      optionId: voteData.optionId,
-      userId: voteData.userId,
-      user: {} as User, // Will be populated with actual user data
-      createdAt: now,
+      poll_id: voteData.pollId,
+      option_id: voteData.optionId,
+      user_id: voteData.userId,
+      created_at: now,
     };
   },
 

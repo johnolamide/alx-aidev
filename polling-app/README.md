@@ -11,7 +11,7 @@
 <div align="center">
   <h3>Create, share, and analyze polls with real-time results and beautiful analytics</h3>
   <p>A modern, full-stack polling application built with Next.js 15, TypeScript, Supabase, and Shadcn/ui components.</p>
-  <p>🚀 <strong>Authentication system fully implemented</strong> | 🎨 <strong>Modern UI ready</strong> | 📊 <strong>Backend integration in progress</strong></p>
+  <p>🚀 <strong>Authentication system fully implemented</strong> | 🎨 <strong>Modern UI ready</strong> | �️ <strong>Database schema ready</strong> | �📊 <strong>Backend integration in progress</strong></p>
 </div>
 
 ---
@@ -292,12 +292,37 @@ APP_URL=http://localhost:3000
 
 The application uses **Supabase** (PostgreSQL with real-time capabilities) as the database and authentication provider.
 
-#### Setting up Supabase
+#### Setting up Supabase Database
 
 1. **Create a Supabase project** at [supabase.com](https://supabase.com)
 2. **Configure environment variables** with your project credentials
-3. **Set up authentication** in the Supabase dashboard
-4. **Create database tables** when implementing polls functionality
+3. **Run the database schema**:
+   - Go to your Supabase project dashboard
+   - Navigate to the **SQL Editor**
+   - Copy and paste the contents of `database/schema.sql`
+   - Run the SQL script to create all tables, policies, and functions
+
+#### Database Schema Overview
+
+The schema includes three main tables:
+
+- **`polls`** - Stores poll information (title, description, settings, creator)
+- **`poll_options`** - Stores options for each poll with vote counts
+- **`votes`** - Stores individual votes with user tracking
+
+**Key Features:**
+- ✅ Row Level Security (RLS) policies for data protection
+- ✅ Automatic vote count updates via database triggers
+- ✅ Support for both authenticated and anonymous voting
+- ✅ Public/private poll visibility controls
+- ✅ Vote validation to prevent duplicates
+- ✅ Real-time capable with Supabase subscriptions
+
+#### Database Functions
+
+- `has_user_voted()` - Check if user has already voted
+- `get_poll_results()` - Get formatted poll results with percentages
+- Automatic triggers for vote count updates
 
 #### Alternative Database Options (Future)
 
@@ -382,7 +407,7 @@ pnpm add @clerk/nextjs
 - [x] Responsive design implementation
 
 ### Phase 2: Backend Integration 🚧
-- [ ] Database schema and models for polls
+- [x] Database schema and models for polls
 - [ ] API endpoints for poll CRUD operations
 - [ ] Vote submission and counting system
 - [ ] Real-time vote updates with Supabase

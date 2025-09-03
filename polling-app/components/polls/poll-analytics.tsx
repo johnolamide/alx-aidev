@@ -77,30 +77,30 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
   const [viewType, setViewType] = useState<"overview" | "detailed" | "export">("overview");
 
   // Calculate analytics data
-  const totalVotes = poll.votes.length;
-  const uniqueVoters = new Set(poll.votes.map(vote => vote.userId)).size;
-  const isActive = !poll.expiresAt || new Date(poll.expiresAt) > new Date();
+  const totalVotes = poll.votes?.length || 0;
+  const uniqueVoters = new Set(poll.votes?.map(vote => vote.user_id) || []).size;
+  const isActive = !poll.expires_at || new Date(poll.expires_at) > new Date();
   const createdDaysAgo = Math.floor(
-    (Date.now() - new Date(poll.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - new Date(poll.created_at).getTime()) / (1000 * 60 * 60 * 24)
   );
 
   // Get vote distribution
-  const voteDistribution = poll.options.map(option => {
-    const votes = poll.votes.filter(vote => vote.optionId === option.id);
+  const voteDistribution = (poll.poll_options || []).map(option => {
+    const votes = (poll.votes || []).filter(vote => vote.option_id === option.id);
     return {
-      option: option.text,
+      option: option.option_text,
       votes: votes.length,
       percentage: totalVotes > 0 ? Math.round((votes.length / totalVotes) * 100) : 0,
-      voters: votes.map(vote => vote.user),
+      voters: votes.map(vote => ({ name: 'Anonymous', avatar: undefined })), // Simplified for now
     };
-  }).sort((a, b) => b.votes - a.votes);
+  }).sort((a: any, b: any) => b.votes - a.votes);
 
   // Get voting timeline
-  const votingTimeline = poll.votes
+  const votingTimeline = (poll.votes || [])
     .map(vote => ({
       ...vote,
-      hour: new Date(vote.createdAt).getHours(),
-      day: format(new Date(vote.createdAt), 'yyyy-MM-dd'),
+      hour: new Date(vote.created_at).getHours(),
+      day: format(new Date(vote.created_at), 'yyyy-MM-dd'),
     }))
     .reduce((acc, vote) => {
       const key = vote.hour;
@@ -122,8 +122,8 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
   const averageVotesPerDay = createdDaysAgo > 0 ? Math.round(totalVotes / createdDaysAgo) : totalVotes;
 
   // Get recent voters
-  const recentVoters = poll.votes
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  const recentVoters = (poll.votes || [])
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 10);
 
   const metrics: AnalyticsMetric[] = [
@@ -221,16 +221,16 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
     const data = {
       poll: {
         title: poll.title,
-        created: poll.createdAt,
+        created: poll.created_at,
         totalVotes,
         uniqueVoters,
       },
       results: voteDistribution,
       timeline: hourlyData,
       recentActivity: recentVoters.map(vote => ({
-        voter: vote.user.name,
-        option: poll.options.find(o => o.id === vote.optionId)?.text,
-        timestamp: vote.createdAt,
+        voter: 'Anonymous', // Simplified for now
+        option: (poll.poll_options || []).find((o: any) => o.id === vote.option_id)?.option_text,
+        timestamp: vote.created_at,
       })),
     };
 
@@ -385,13 +385,13 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Visibility</span>
                 <div className="flex items-center space-x-1">
-                  {poll.isPublic ? (
+                  {poll.is_public ? (
                     <Globe className="h-3 w-3" />
                   ) : (
                     <Lock className="h-3 w-3" />
                   )}
                   <span className="text-sm">
-                    {poll.isPublic ? "Public" : "Private"}
+                    {poll.is_public ? "Public" : "Private"}
                   </span>
                 </div>
               </div>
@@ -399,17 +399,17 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Created</span>
                 <span className="text-sm">
-                  {formatDistanceToNow(new Date(poll.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(poll.created_at), { addSuffix: true })}
                 </span>
               </div>
 
-              {poll.expiresAt && (
+              {poll.expires_at && (
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">
                     {isActive ? "Expires" : "Expired"}
                   </span>
                   <span className="text-sm">
-                    {formatDistanceToNow(new Date(poll.expiresAt), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(poll.expires_at), { addSuffix: true })}
                   </span>
                 </div>
               )}
@@ -424,7 +424,7 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Vote type</span>
                 <span className="text-sm">
-                  {poll.allowMultipleVotes ? "Multiple choice" : "Single choice"}
+                  {poll.allow_multiple_votes ? "Multiple choice" : "Single choice"}
                 </span>
               </div>
             </div>
@@ -498,21 +498,21 @@ export function PollAnalytics({ poll, className }: PollAnalyticsProps) {
             {recentVoters.map((vote, index) => (
               <div key={vote.id} className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={vote.user.avatar} />
+                  <AvatarImage src={undefined} />
                   <AvatarFallback className="text-xs">
-                    {vote.user.name.substring(0, 2).toUpperCase()}
+                    AN
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {vote.user.name}
+                    Anonymous
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    voted for "{poll.options.find(o => o.id === vote.optionId)?.text}"
+                    voted for "{(poll.poll_options || []).find((o: any) => o.id === vote.option_id)?.option_text}"
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(new Date(vote.createdAt), { addSuffix: true })}
+                  {formatDistanceToNow(new Date(vote.created_at), { addSuffix: true })}
                 </div>
               </div>
             ))}
