@@ -16,40 +16,65 @@ import {
   Minus,
 } from "lucide-react";
 
+/**
+ * Props for individual StatsCard component
+ */
 interface StatsCardProps {
-  title: string;
-  value: string | number;
-  description?: string;
-  icon: React.ComponentType<any>;
-  trend?: {
-    value: number;
-    label: string;
-    type: "increase" | "decrease" | "neutral";
+  title: string;                    // Card title
+  value: string | number;          // Main value to display
+  description?: string;            // Optional description text
+  icon: React.ComponentType<any>;   // Icon component to display
+  trend?: {                        // Optional trend information
+    value: number;                 // Trend percentage
+    label: string;                 // Trend label (e.g., "from last month")
+    type: "increase" | "decrease" | "neutral"; // Trend direction
   };
-  badge?: {
-    text: string;
-    variant?: "default" | "secondary" | "destructive" | "outline";
+  badge?: {                        // Optional badge to display
+    text: string;                  // Badge text
+    variant?: "default" | "secondary" | "destructive" | "outline"; // Badge style
   };
-  className?: string;
+  className?: string;              // Additional CSS classes
 }
 
+/**
+ * Dashboard statistics data structure
+ */
 interface DashboardStats {
-  totalPolls: number;
-  activePolls: number;
-  totalVotes: number;
-  totalParticipants: number;
-  pollsThisMonth: number;
-  votesToday: number;
-  averageVotesPerPoll: number;
-  completionRate: number;
+  totalPolls: number;           // Total number of polls created
+  activePolls: number;          // Number of currently active polls
+  totalVotes: number;           // Total votes across all polls
+  totalParticipants: number;    // Total unique participants
+  pollsThisMonth: number;       // Polls created this month
+  votesToday: number;           // Votes cast today
+  averageVotesPerPoll: number;  // Average votes per poll
+  completionRate: number;       // Poll completion rate percentage
 }
 
+/**
+ * Props for StatsCards component
+ */
 interface StatsCardsProps {
-  stats: DashboardStats;
-  isLoading?: boolean;
+  stats: DashboardStats;        // Statistics data
+  isLoading?: boolean;          // Loading state
 }
 
+/**
+ * Individual Stats Card Component
+ * Displays a single metric with optional trend and badge
+ *
+ * @param title - The metric title
+ * @param value - The main value to display
+ * @param description - Optional description text
+ * @param icon - Icon component for visual representation
+ * @param trend - Optional trend information with percentage and direction
+ * @param badge - Optional badge to highlight status or category
+ * @param className - Additional CSS classes for styling
+ */
 function StatsCard({ title, value, description, icon: Icon, trend, badge, className }: StatsCardProps) {
+  /**
+   * Get the appropriate trend icon based on trend type
+   * @returns React element for trend indicator
+   */
   const getTrendIcon = () => {
     switch (trend?.type) {
       case "increase":
@@ -61,6 +86,10 @@ function StatsCard({ title, value, description, icon: Icon, trend, badge, classN
     }
   };
 
+  /**
+   * Get trend color classes based on trend type
+   * @returns CSS classes for trend text color
+   */
   const getTrendColor = () => {
     switch (trend?.type) {
       case "increase":
@@ -118,7 +147,22 @@ function StatsCardSkeleton() {
   );
 }
 
+/**
+ * Main StatsCards Component
+ * Displays key dashboard metrics in a responsive grid layout
+ *
+ * Features:
+ * - Responsive grid (1-4 columns based on screen size)
+ * - Loading skeleton states
+ * - Trend indicators with percentage changes
+ * - Status badges for highlighting important metrics
+ * - Formatted numbers (K/M abbreviations for large numbers)
+ *
+ * @param stats - Dashboard statistics data
+ * @param isLoading - Whether to show loading skeletons
+ */
 export function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
+  // Show loading skeletons while data is being fetched
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -129,6 +173,11 @@ export function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
     );
   }
 
+  /**
+   * Format large numbers with K/M abbreviations
+   * @param num - Number to format
+   * @returns Formatted string (e.g., "1.2K", "2.5M")
+   */
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
@@ -139,6 +188,7 @@ export function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
     return num.toString();
   };
 
+  // Configuration for the four main stats cards
   const statsConfig = [
     {
       title: "Total Polls",
@@ -199,6 +249,20 @@ export function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
 }
 
 // Extended stats cards for detailed analytics
+/**
+ * DetailedStatsCards Component
+ * Displays comprehensive dashboard metrics with enhanced visual indicators
+ *
+ * Features:
+ * - 6-column responsive grid layout
+ * - More detailed trend analysis
+ * - Status badges for live/active indicators
+ * - Enhanced number formatting
+ * - Loading states with skeleton components
+ *
+ * @param stats - Dashboard statistics data
+ * @param isLoading - Whether to show loading skeletons
+ */
 export function DetailedStatsCards({ stats, isLoading = false }: StatsCardsProps) {
   if (isLoading) {
     return (

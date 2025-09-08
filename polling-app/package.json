@@ -8,7 +8,10 @@
     "start": "next start",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "audit:security": "pnpm audit --audit-level=moderate",
+    "audit:fix": "pnpm audit fix",
+    "lint:security": "echo 'Security linting not configured yet'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",

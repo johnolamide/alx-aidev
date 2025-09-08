@@ -20,31 +20,59 @@ import { LoginData } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth/auth-context";
 
+/**
+ * Props for the LoginForm component
+ */
 interface LoginFormProps {
+  /** Optional custom submit handler for form data */
   onSubmit?: (data: LoginData) => Promise<void>;
 }
 
+/**
+ * LoginForm Component
+ * Provides a complete login interface with email/password authentication
+ *
+ * Features:
+ * - Email and password input fields
+ * - Password visibility toggle
+ * - Form validation and error handling
+ * - Loading states during authentication
+ * - Social login placeholders
+ * - Links to registration and password recovery
+ *
+ * @param onSubmit - Optional custom submit handler (defaults to Supabase auth)
+ */
 export function LoginForm({ onSubmit }: LoginFormProps) {
+  // Form state management
   const [formData, setFormData] = useState<LoginData>({
     email: "",
     password: "",
   });
+
+  // UI state management
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Navigation and authentication hooks
   const router = useRouter();
   const { signIn } = useAuth();
 
+  /**
+   * Handle form submission
+   * Processes login attempt and handles success/error states
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
+      // Use custom submit handler if provided, otherwise use default auth
       if (onSubmit) {
         await onSubmit(formData);
       } else {
-        // Use Supabase authentication
+        // Default authentication flow using Supabase
         await signIn(formData.email, formData.password);
         router.push("/dashboard");
       }
@@ -55,6 +83,13 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
     }
   };
 
+  /**
+   * Handle input field changes
+   * Updates form data and clears any existing errors
+   *
+   * @param field - The field name being updated
+   * @param value - The new field value
+   */
   const handleInputChange = (field: keyof LoginData, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -64,6 +99,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
     if (error) setError("");
   };
 
+  // Form validation - check if required fields are filled
   const isFormValid = formData.email && formData.password;
 
   return (

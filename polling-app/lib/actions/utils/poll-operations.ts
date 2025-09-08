@@ -4,16 +4,39 @@ import { AuthUtils } from './auth';
 import { ValidationUtils } from './validation';
 import { ErrorUtils, Errors } from './errors';
 
+/**
+ * Extended Poll interface with additional details
+ * Includes poll options and user's vote information
+ */
 export interface PollWithDetails extends Poll {
-  poll_options: PollOption[];
-  userVote?: Vote | null;
+  poll_options: PollOption[];  // Array of poll options with vote counts
+  userVote?: Vote | null;      // User's vote if authenticated
 }
 
+/**
+ * PollOperations Class
+ * Handles all poll-related database operations and business logic
+ *
+ * This class provides methods for:
+ * - Creating polls with options
+ * - Retrieving polls with details
+ * - Managing user votes
+ * - Handling poll permissions and validation
+ */
 export class PollOperations {
+  /**
+   * Create a new poll with options
+   * Handles the complete poll creation process including validation and cleanup
+   *
+   * @param data - Poll creation data including title, description, options, and settings
+   * @returns Promise<PollWithDetails> - Complete poll object with options
+   * @throws Error if validation fails or database operations fail
+   */
   static async createPoll(data: CreatePollData): Promise<PollWithDetails> {
+    // Ensure user is authenticated before creating poll
     const user = await AuthUtils.requireAuth();
 
-    // Validate input data
+    // Validate input data structure and content
     const validation = ValidationUtils.validateCreatePollData(data);
     if (!validation.isValid) {
       throw ErrorUtils.handleValidationError(validation.errors);
@@ -21,7 +44,7 @@ export class PollOperations {
 
     const supabase = await getSupabaseClient();
 
-    // Calculate expiration date
+    // Calculate expiration date if specified
     let expiresAt: string | null = null;
     if (data.expirationDays && data.expirationDays !== 'never') {
       const days = parseInt(data.expirationDays);
@@ -30,7 +53,7 @@ export class PollOperations {
       expiresAt = expirationDate.toISOString();
     }
 
-    // Create poll
+    // Insert poll record into database
     const { data: poll, error: pollError } = await supabase
       .from('polls')
       .insert({
@@ -48,7 +71,7 @@ export class PollOperations {
       throw ErrorUtils.handleDatabaseError(pollError);
     }
 
-    // Create poll options
+    // Create poll options in batch
     const pollOptions = data.options
       .filter(option => option && option.trim().length > 0)
       .map(optionText => ({
@@ -61,16 +84,25 @@ export class PollOperations {
       .insert(pollOptions);
 
     if (optionsError) {
-      // Clean up the poll if options creation fails
+      // Clean up the poll if options creation fails to maintain data integrity
       await supabase.from('polls').delete().eq('id', poll.id);
       throw ErrorUtils.handleDatabaseError(optionsError);
     }
 
-    // Fetch the complete poll with options
+    // Return complete poll with options
     return this.getPollById(poll.id);
   }
 
+  /**
+   * Get poll by ID with full details
+   * Retrieves a poll with its options and user's vote (if authenticated)
+   *
+   * @param pollId - Unique identifier of the poll
+   * @returns Promise<PollWithDetails> - Poll with options and user vote info
+   * @throws Error if poll not found or access denied
+   */
   static async getPollById(pollId: string): Promise<PollWithDetails> {
+    // Validate poll ID format
     const validation = ValidationUtils.validatePollId(pollId);
     if (!validation.isValid) {
       throw ErrorUtils.handleValidationError(validation.errors);
@@ -79,6 +111,7 @@ export class PollOperations {
     const supabase = await getSupabaseClient();
     const { user } = await AuthUtils.getCurrentUser();
 
+    // Fetch poll with options using Supabase join
     const { data: poll, error } = await supabase
       .from('polls')
       .select(`
@@ -120,7 +153,7 @@ export class PollOperations {
       userVote = vote || null;
     }
 
-    // Set creator info
+    // Add creator information if user is the poll creator
     const creator = user && user.id === poll.created_by
       ? { id: user.id, email: user.email }
       : undefined;
@@ -320,7 +353,17 @@ export class PollOperations {
     }
   }
 
+  /**
+   * Cast a vote for a poll option
+   * Handles both authenticated and anonymous voting with validation
+   *
+   * @param pollId - ID of the poll being voted on
+   * @param optionId - ID of the option being voted for
+   * @returns Promise<Vote> - The created vote record
+   * @throws Error if validation fails, poll is private, expired, or user already voted
+   */
   static async castVote(pollId: string, optionId: string): Promise<Vote> {
+    // Validate input parameters
     const validation = ValidationUtils.validateVoteData(pollId, optionId);
     if (!validation.isValid) {
       throw ErrorUtils.handleValidationError(validation.errors);
@@ -329,7 +372,7 @@ export class PollOperations {
     const supabase = await getSupabaseClient();
     const { user } = await AuthUtils.getCurrentUser();
 
-    // Check if poll exists and is accessible
+    // Verify poll exists and check accessibility
     const { data: poll, error: pollError } = await supabase
       .from('polls')
       .select('id, is_public, allow_multiple_votes, expires_at')
@@ -340,6 +383,7 @@ export class PollOperations {
       throw Errors.POLL_NOT_FOUND;
     }
 
+    // Ensure poll is public (required for voting)
     if (!poll.is_public) {
       throw Errors.POLL_PRIVATE;
     }
@@ -349,7 +393,7 @@ export class PollOperations {
       throw Errors.POLL_EXPIRED;
     }
 
-    // Check if user has already voted (if not allowing multiple votes)
+    // Prevent duplicate votes if multiple votes not allowed
     if (user && !poll.allow_multiple_votes) {
       const { data: existingVote } = await supabase
         .from('votes')
@@ -363,7 +407,7 @@ export class PollOperations {
       }
     }
 
-    // Check if option belongs to the poll
+    // Verify the option belongs to the poll
     const { data: option, error: optionError } = await supabase
       .from('poll_options')
       .select('id')
@@ -375,19 +419,23 @@ export class PollOperations {
       throw Errors.OPTION_NOT_FOUND;
     }
 
-    // Insert the vote
+    // Prepare vote data with user or anonymous identifier
     const voteData: any = {
       poll_id: pollId,
       option_id: optionId,
     };
 
     if (user) {
+      // Authenticated user vote
       voteData.user_id = user.id;
     } else {
-      // For anonymous votes
-      voteData.anonymous_id = 'anonymous';
+      // Anonymous vote - generate unique identifier
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      voteData.anonymous_id = `anon_${timestamp}_${randomString}`;
     }
 
+    // Insert vote into database
     const { data: vote, error: voteError } = await supabase
       .from('votes')
       .insert(voteData)
